@@ -1,11 +1,17 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import pickle
 import pandas as pd
 import numpy as np
+import os
 from ml_model import predict_go_terms, load_model
 from graph_model import refine_predictions, load_go_data
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS untuk frontend
+
+# Configuration
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 # Memuat model dan graf GO
 print("Memuat model dan graf GO...")
@@ -16,6 +22,17 @@ try:
 except Exception as e:
     print(f"Error memuat model: {e}")
     model_loaded = False
+
+# Health check endpoint
+@app.route('/health', methods=['GET'])
+def health_check():
+    """
+    Health check endpoint
+    """
+    return jsonify({
+        'status': 'healthy',
+        'model_loaded': model_loaded
+    })
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -124,4 +141,5 @@ def status():
     })
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
